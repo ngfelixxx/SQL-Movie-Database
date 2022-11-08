@@ -1,0 +1,128 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Question 1: 
+```{r}
+#a 
+movies <- read.csv("C:\\Users\\User1\\Documents\\movies500.csv")
+movies_genres <- read.csv("C:\\Users\\User1\\Documents\\movies500_genres.csv")
+genres <- read.csv("C:\\Users\\User1\\Documents\\genres.csv")
+```
+```{r}
+#b 
+movies$reldate <- as.Date(movies$release_date, "%Y-%m-%d")
+print(movies$reldate) 
+```
+```{r}
+#c 
+hist(movies$reldate, breaks="years", main="release dates", xlab="Years", col="green") 
+```
+Question 2: 
+```{r}
+#a 
+#install.packages("RSQLite")
+library(DBI)
+library(RSQLite)
+movies_SQL <- dbConnect(RSQLite::SQLite(), "movies.sqlite")
+```
+```{r}
+#b 
+dbWriteTable(movies_SQL, "movies_tb", movies, overwrite=TRUE)
+dbWriteTable(movies_SQL, "movies_genres_tb", movies_genres, overwrite=TRUE)
+dbWriteTable(movies_SQL, "genres_tb", genres, overwrite=TRUE) #added 
+dbListTables(movies_SQL)
+```
+```{sql, connection = movies_SQL}
+--c 
+SELECT COUNT(*) FROM movies_tb 
+```
+```{sql, connection = movies_SQL}
+--d
+SELECT title, runtime, release_date
+FROM movies_tb
+WHERE runtime > 540 
+ORDER BY runtime ASC 
+```
+```{sql, connection = movies_SQL}
+--e 
+SELECT title 
+FROM movies_tb 
+WHERE LOWER(title) LIKE '%love%'
+```
+```{r}
+genres_SQL <- dbConnect(RSQLite::SQLite(), "genres.sqlite")
+dbWriteTable(genres_SQL, "genres_tb", genres, overwrite=TRUE)
+dbListTables(genres_SQL)
+```
+```{sql eval=FALSE, connection = genres_SQL}
+--f
+CREATE TABLE genres(
+   genre_id   INTEGER,
+   genre_name   TEXT,
+   PRIMARY KEY(genre_id)
+)
+```
+```{sql eval=FALSE, connection = genres_SQL}
+--g
+INSERT INTO genres(genre_id, genre_name)
+SELECT genre_id, genre_name
+FROM genres_tb
+```
+```{sql eval=FALSE, connection = genres_SQL}
+--h 
+INSERT INTO genres(genre_id, genre_name)
+VALUES
+(611, "University Comedy")
+```
+```{sql, connection = genres_SQL}
+--i 
+DELETE FROM genres WHERE genre_name = "University Comedy" 
+```
+```{sql eval=FALSE, connection = genres_SQL}
+INSERT INTO genres(genre_id, genre_name)
+VALUES
+(611, "University Tragedy")
+```
+
+```{sql, connection = movies_SQL}
+--j 
+SELECT *
+FROM movies_tb LEFT JOIN movies_genres_tb 
+ON movies_tb.tmdbId = movies_genres_tb.tmdbId
+ORDER BY tmdbId 
+```
+```{sql, connection = movies_SQL}
+SELECT *
+FROM movies_tb, movies_genres_tb
+WHERE original_title = "Running Wild" 
+```
+
+```{sql, connection = movies_SQL}
+--k
+SELECT *
+FROM movies_tb, movies_genres_tb, genres_tb
+WHERE original_title = "Running Wild" 
+AND movies_tb.tmdbId = movies_genres_tb.tmdbId
+AND movies_genres_tb.genre_id = genres_tb.genre_id
+```
+
+```{sql, connection = movies_SQL}
+--l
+SELECT genres_tb.genre_name, COUNT(movies_genres_tb.genre_id) AS N_Genre
+FROM movies_genres_tb 
+LEFT JOIN genres_tb 
+ON movies_genres_tb.genre_id = genres_tb.genre_id 
+GROUP BY movies_genres_tb.genre_id  
+HAVING N_Genre >= 10 
+ORDER BY N_Genre DESC 
+```
+
+
+
+
+
+
+
+
+
